@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>🔥 AI স্মার্ট স্ক্যানার প্রো</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 15px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+      to { text-shadow: 2px 2px 20px rgba(255,255,255,0.8); }
+    }
+
+    .camera-container {
+      position: relative;
+      display: inline-block;
+      margin: 20px 0;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    video {
+      max-width: 100%;
+      height: 300px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .scan-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .scan-overlay.active {
+      opacity: 1;
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00ff88, transparent);
+      animation: scanLine 2s infinite;
+      box-shadow: 0 0 10px #00ff88;
+    }
+
+    @keyframes scanLine {
+      0% { top: 0; }
+      100% { top: calc(100% - 3px); }
+    }
+
+    .corner-brackets {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      bottom: 20px;
+      border: 2px solid #00ff88;
+      border-radius: 15px;
+      opacity: 0;
+      animation: brackets 2s infinite;
+    }
+
+    .corner-brackets::before,
+    .corner-brackets::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+    }
+
+    .corner-brackets::before {
+      top: -2px;
+      left: -2px;
+      border-top: 3px solid #fff;
+      border-left: 3px solid #fff;
+    }
+
+    .corner-brackets::after {
+      bottom: -2px;
+      right: -2px;
+      border-bottom: 3px solid #fff;
+      border-right: 3px solid #fff;
+    }
+
+    @keyframes brackets {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: particle 3s infinite;
+      box-shadow: 0 0 6px #00ff88;
+    }
+
+    @keyframes particle {
+      0% { transform: translateY(0) scale(0); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .btn {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 25px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.scanning {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4); }
+      50% { box-shadow: 0 4px 25px rgba(255, 107, 107, 0.8); }
+    }
+
+    .btn-voice {
+      background: linear-gradient(45deg, #5f27cd, #341f97);
+    }
+
+    .btn-history {
+      background: linear-gradient(45deg, #00d2d3, #54a0ff);
+    }
+
+    .settings-panel {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      margin: 10px 0;
+      display: none;
+      animation: slideIn 0.3s;
+    }
+
+    .settings-panel.active {
+      display: block;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      margin: 10px;
+    }
+
+    .toggle input {
+      appearance: none;
+      width: 50px;
+      height: 25px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 15px;
+      position: relative;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked {
+      background: #00ff88;
+    }
+
+    .toggle input::before {
+      content: '';
+      position: absolute;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 2px;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked::before {
+      left: 27px;
+    }
+
+    #result {
+      margin: 20px auto;
+      max-width: 90%;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: none;
+      animation: resultSlideIn 0.5s;
+      word-wrap: break-word;
+    }
+
+    #result.show {
+      display: block;
+    }
+
+    @keyframes resultSlideIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .history-panel {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      margin: 10px 0;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .history-item {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .history-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-left: 4px solid #00ff88;
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .zoom-controls {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .zoom-btn {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: 0.3s;
+    }
+
+    .zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    .voice-indicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      display: none;
+      z-index: 1000;
+    }
+
+    .voice-wave {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #ff6b6b;
+      animation: voiceWave 1s infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes voiceWave {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 AI স্মার্ট স্ক্যানার প্রো</h1>
+    <p>🚀 অত্যাধুনিক ফিচার সহ AI স্ক্যানিং</p>
+
+    <div class="camera-container">
+      <video id="camera" autoplay playsinline></video>
+      <div class="scan-overlay" id="scanOverlay">
+        <div class="scan-line"></div>
+        <div class="corner-brackets"></div>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomIn">+</button>
+        <button class="zoom-btn" id="zoomOut">-</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="capture">📸 স্ক্যান</button>
+      <button class="btn" id="switchCamera">🔄 ক্যামেরা</button>
+      <button class="btn btn-voice" id="voiceBtn">🎤 ভয়েস</button>
+      <button class="btn btn-history" id="historyBtn">📚 হিস্টোরি</button>
+      <button class="btn" id="settingsBtn">⚙️ সেটিংস</button>
+      <button class="btn" id="funnyBtn" style="background: linear-gradient(45deg, #ff9ff3, #f368e0);">🤣 ফানি স্ক্যানার</button>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+      <h3>⚙️ সেটিংস</h3>
+      <div class="toggle">
+        <span>🌙 ডার্ক মোড: </span>
+        <input type="checkbox" id="darkMode">
+      </div>
+      <div class="toggle">
+        <span>🔊 সাউন্ড: </span>
+        <input type="checkbox" id="soundToggle" checked>
+      </div>
+      <div class="toggle">
+        <span>🌐 বাংলা/English: </span>
+        <input type="checkbox" id="langToggle" checked>
+      </div>
+    </div>
+
+    <div class="history-panel" id="historyPanel">
+      <h3>📚 স্ক্যান হিস্টোরি</h3>
+      <div id="historyList"></div>
+      <button class="btn" id="clearHistory">🗑️ ক্লিয়ার</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>🔍 AI বিশ্লেষণ চলছে...</p>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="voice-indicator" id="voiceIndicator">
+      <div class="voice-wave"></div>
+      <p>🎤 কথা বলুন...</p>
+    </div>
+  </div>
+
+  <script>
+    // Variables
+    const video = document.getElementById('camera');
+    const captureBtn = document.getElementById('capture');
+    const switchBtn = document.getElementById('switchCamera');
+    const voiceBtn = document.getElementById('voiceBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const resultDiv = document.getElementById('result');
+    const loading = document.getElementById('loading');
+    const scanOverlay = document.getElementById('scanOverlay');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyList = document.getElementById('historyList');
+    const voiceIndicator = document.getElementById('voiceIndicator');
+    const zoomInBtn = document.getElementById('zoomIn');
+    const funnyBtn = document.getElementById('funnyBtn');
+
+    const OPENAI_API_KEY = "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"; // আপনার API Key বসান
+    
+    let currentFacingMode = "environment";
+    let stream;
+    let scanHistory = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+    let currentZoom = 1;
+    let isBangla = true;
+    let soundEnabled = true;
+
+    // Audio Context for sound effects
+    let audioContext;
+    
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(frequency = 800, duration = 100) {
+      if (!soundEnabled || !audioContext) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+    }
+
+    // Camera functions
+    async function startCamera(facingMode) {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode,
+            zoom: currentZoom
+          }
+        });
+        video.srcObject = stream;
+      } catch (err) {
+        showResult("❌ ক্যামেরা চালু হয়নি: " + err.message, 'error');
+      }
+    }
+
+    // Initialize camera
+    startCamera(currentFacingMode);
+
+    // Capture image
+    function captureImage() {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.8);
+    }
+
+    // Show result with animation
+    function showResult(text, type = 'success') {
+      resultDiv.className = type === 'error' ? 'error' : '';
+      resultDiv.textContent = text;
+      resultDiv.classList.add('show');
+      
+      // Add to history if it's a successful scan
+      if (type === 'success' && text.length > 20) {
+        const historyItem = {
+          text: text.substring(0, 100) + '...',
+          full: text,
+          timestamp: new Date().toLocaleString('bn-BD')
+        };
+        scanHistory.unshift(historyItem);
+        if (scanHistory.length > 10) scanHistory.pop();
+        localStorage.setItem('scanHistory', JSON.stringify(scanHistory));
+        updateHistoryDisplay();
+      }
+    }
+
+    // Create particles effect
+    function createParticles() {
+      const container = document.querySelector('.camera-container');
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(particle);
+        
+        setTimeout(() => particle.remove(), 3000);
+      }
+    }
+
+    // Funny scan function
+    async function performFunnyScan() {
+      initAudio();
+      playSound(1000, 200);
+      
+      scanOverlay.classList.add('active');
+      funnyBtn.classList.add('scanning');
+      loading.style.display = 'block';
+      resultDiv.classList.remove('show');
+      
+      createParticles();
+      
+      const imageBase64 = captureImage();
+      
+      try {
+        const funnyPrompt = isBangla ? 
+          "এই ব্যক্তি সম্পর্কে বাংলা মুভি/নাটকের কমেডি স্টাইলে মজার roasting কমেন্ট করো। মশকরা করে বলো যেমন - 'ভাই তোর চুল দেখে মনে হচ্ছে বিদ্যুৎ স্পর্শ করেছে', 'এই পোশাক পরে কোন যুগের হিরো হওয়ার চেষ্টা করছিস', 'তোর এই ভাব দেখে মনে হচ্ছে পৃথিবীর সব সমস্যার সমাধান তোর কাছে আছে' ইত্যাদি। একটু সাভেজ হও কিন্তু বন্ধুত্বপূর্ণ ভাবে। বাংলায় উত্তর দাও।" :
+          "Roast this person in Bengali movie/drama comedy style. Make savage but friendly comments like 'Bhai tor chul dekhe mone hochche bidyut sporsho koreche', 'Ei poshak pore kon juger hero howar chesta korchis', etc. Be a bit savage but in a friendly way. Answer in Bengali.";
+          
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: funnyPrompt },
+                  { type: "image_url", image_url: { url: imageBase64 } }
+                ]
+              }
+            ],
+            max_tokens: 300
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          showResult("❌ ত্রুটি: " + data.error.message, 'error');
+          playSound(400, 500);
+        } else {
+          const result = data.choices[0].message.content;
+          showResult("🤣 ফানি কমেন্ট: " + result);
+          playSound(1500, 400);
+        }
+      } catch (err) {
+        showResult("❌ নেটওয়ার্ক সমস্যা: " + err.message, 'error');
+        playSound(400, 500);
+      }
+      
+      setTimeout(() => {
+        scanOverlay.classList.remove('active');
+        funnyBtn.classList.remove('scanning');
+        loading.style.display = 'none';
+      }, 2000);
+    }
+    async function performScan() {
+      initAudio();
+      playSound(1000, 200);
+      
+      scanOverlay.classList.add('active');
+      captureBtn.classList.add('scanning');
+      loading.style.display = 'block';
+      resultDiv.classList.remove('show');
+      
+      createParticles();
+      
+      const imageBase64 = captureImage();
+      
+      try {
+        const prompt = isBangla ? 
+          "ছবিটিকে বিস্তারিতভাবে বাংলায় বর্ণনা করো। যদি এটি টেক্সট হয় তাহলে টেক্সটটি পড়ে দাও।" :
+          "Describe this image in detail in English. If there's text, please read it out.";
+          
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: imageBase64 } }
+                ]
+              }
+            ],
+            max_tokens: 500
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+          showResult("❌ ত্রুটি: " + data.error.message, 'error');
+          playSound(400, 500);
+        } else {
+          const result = data.choices[0].message.content;
+          showResult("📄 স্ক্যানের ফলাফল: " + result);
+          playSound(1200, 300);
+        }
+      } catch (err) {
+        showResult("❌ নেটওয়ার্ক সমস্যা: " + err.message, 'error');
+        playSound(400, 500);
+      }
+      
+      setTimeout(() => {
+        scanOverlay.classList.remove('active');
+        captureBtn.classList.remove('scanning');
+        loading.style.display = 'none';
+      }, 2000);
+    }
+
+    // Voice recognition
+    function startVoiceRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showResult("❌ ভয়েস রিকগনিশন সাপোর্ট নেই", 'error');
+        return;
+      }
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.lang = 'bn-BD';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      voiceIndicator.style.display = 'block';
+      
+      recognition.onresult = function(event) {
+        const command = event.results[0][0].transcript.toLowerCase();
+        voiceIndicator.style.display = 'none';
+        
+        if (command.includes('স্ক্যান') || command.includes('scan')) {
+          performScan();
+        } else if (command.includes('ফানি') || command.includes('funny')) {
+          performFunnyScan();
+        } else if (command.includes('ক্যামেরা বদল') || command.includes('switch')) {
+          switchCamera();
+        } else {
+          showResult("🎤 কমান্ড বুঝতে পারিনি। বলুন: 'স্ক্যান করুন'");
+        }
+      };
+      
+      recognition.onerror = function() {
+        voiceIndicator.style.display = 'none';
+        showResult("❌ ভয়েস রিকগনিশন ব্যর্থ", 'error');
+      };
+      
+      recognition.start();
+    }
+
+    // Switch camera
+    function switchCamera() {
+      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+      startCamera(currentFacingMode);
+      playSound(800, 100);
+    }
+
+    // Update history display
+    function updateHistoryDisplay() {
+      historyList.innerHTML = '';
+      scanHistory.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `<small>${item.timestamp}</small><br>${item.text}`;
+        div.onclick = () => showResult(item.full);
+        historyList.appendChild(div);
+      });
+    }
+
+    // Event listeners
+    captureBtn.onclick = performScan;
+    switchBtn.onclick = switchCamera;
+    voiceBtn.onclick = startVoiceRecognition;
+    funnyBtn.onclick = performFunnyScan;
+
+    settingsBtn.onclick = () => {
+      settingsPanel.classList.toggle('active');
+      historyPanel.classList.remove('active');
+    };
+
+    historyBtn.onclick = () => {
+      historyPanel.classList.toggle('active');
+      settingsPanel.classList.remove('active');
+      updateHistoryDisplay();
+    };
+
+    document.getElementById('clearHistory').onclick = () => {
+      scanHistory = [];
+      localStorage.removeItem('scanHistory');
+      updateHistoryDisplay();
+      showResult("🗑️ হিস্টোরি ক্লিয়ার হয়েছে");
+    };
+
+    // Settings toggles
+    document.getElementById('darkMode').onchange = function() {
+      document.body.style.filter = this.checked ? 'invert(1) hue-rotate(180deg)' : 'none';
+    };
+
+    document.getElementById('soundToggle').onchange = function() {
+      soundEnabled = this.checked;
+    };
+
+    document.getElementById('langToggle').onchange = function() {
+      isBangla = this.checked;
+    };
+
+    // Zoom controls
+    zoomInBtn.onclick = () => {
+      currentZoom = Math.min(currentZoom + 0.2, 3);
+      startCamera(currentFacingMode);
+    };
+
+    zoomOutBtn.onclick = () => {
+      currentZoom = Math.max(currentZoom - 0.2, 1);
+      startCamera(currentFacingMode);
+    };
+
+    // Initialize
+    updateHistoryDisplay();
+  </script>
+</body>
+</html>
